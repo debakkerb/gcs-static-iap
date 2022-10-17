@@ -1,0 +1,16 @@
+.DS_Store
+
+# Terraform files
+terraform.tfvars
+**/.terraform/**
+backend.tf
+*.tfstate
+*.tfstate.*
+*.lock.hcl
+
+credentials.json
+.idea
+.vscode
+.envrc
+*.iml
+
