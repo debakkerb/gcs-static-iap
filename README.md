@@ -57,16 +57,15 @@ terraform apply -auto-approve -var="cdn_signing_key=${SIGNING_KEY}"
 Even though the CDN signing key is sensitive, it will end up in the Terraform state this way.  It's not recommended to do this in a PRD environment, so a better approach is to generate the key outside of the Terraform code and push it to Secret Manager and the backend service directly:
 
 ```shell
-SIGNING_KEY=$(head -c 16 /dev/urandom | base64 | tr +/ -_)
 PROJECT_ID=$(terraform output -json | jq -r .project_id.value)
+echo "$(head -c 16 /dev/urandom | base64 | tr +/ -_)" > key.fm
 
-printf "$SIGNING_KEY" | gcloud secrets versions add $(terraform output -json | jq -r .cdn_secret_name.value) --data-file=- --project $PROJECT_ID
+gcloud secrets versions add $(terraform output -json | jq -r .cdn_secret_name.value) --data-file=./key.fm --project $PROJECT_ID
 
 # Remove the existing signing key, as you can't add two at the same time
 
 gcloud compute backend-buckets delete-signed-url-key $(terraform output -json | jq -r .backend_bucket_name.value) --key-name $(terraform output -json | jq -r .cdn_sign_key_name.value) --project ${PROJECT_ID}
 
-echo "$SIGNING_KEY" > key.fm
 gcloud compute backend-buckets add-signed-url-key $(terraform output -json | jq -r .backend_bucket_name.value) --key-file=./key.fm --key-name=$(terraform output -json | jq -r .cdn_sign_key_name.value)
 rm -rf key.fm
 ```
