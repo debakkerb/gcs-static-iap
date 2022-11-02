@@ -62,6 +62,10 @@ PROJECT_ID=$(terraform output -json | jq -r .project_id.value)
 
 printf "$SIGNING_KEY" | gcloud secrets versions add $(terraform output -json | jq -r .cdn_secret_name.value) --data-file=- --project $PROJECT_ID
 
+# Remove the existing signing key, as you can't add two at the same time
+
+gcloud compute backend-buckets delete-signed-url-key $(terraform output -json | jq -r .backend_bucket_name.value) --key-name $(terraform output -json | jq -r .cdn_sign_key_name.value) --project ${PROJECT_ID}
+
 echo "$SIGNING_KEY" > key.fm
 gcloud compute backend-buckets add-signed-url-key $(terraform output -json | jq -r .backend_bucket_name.value) --key-file=./key.fm --key-name=$(terraform output -json | jq -r .cdn_sign_key_name.value)
 rm -rf key.fm
