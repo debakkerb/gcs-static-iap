@@ -47,4 +47,5 @@ module "login_app_image" {
   project_id = module.project.project_id
   image_name = local.full_image_name
   image_tag  = local.image_tag
+  region     = var.region
 }

@@ -17,6 +17,7 @@
 PROJECT_ID=$1
 IMAGE_NAME=$2
 IMAGE_TAG=$3
+REGION=$4
 
 gcloud config set project ${PROJECT_ID}
-gcloud builds submit . --pack image=${IMAGE_NAME}:${IMAGE_TAG}
+gcloud builds submit . --pack image=${IMAGE_NAME}:${IMAGE_TAG} --region ${REGION}
