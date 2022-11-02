@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+variable "cloudbuild_storage_bucket" {
+  description = "Bucket that should be used by Cloud Build to store the artifacts"
+  type        = string
+}
+
 variable "image_name" {
   description = "Name of the container image."
   type        = string
@@ -33,3 +38,4 @@ variable "region" {
   description = "Region where the Cloud Build should run"
   type        = string
 }
+

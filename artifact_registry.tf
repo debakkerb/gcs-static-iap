@@ -44,8 +44,9 @@ resource "google_artifact_registry_repository" "login_app_registry" {
 module "login_app_image" {
   source = "./modules/login-app"
 
-  project_id = module.project.project_id
-  image_name = local.full_image_name
-  image_tag  = local.image_tag
-  region     = var.region
+  project_id                = module.project.project_id
+  image_name                = local.full_image_name
+  image_tag                 = local.image_tag
+  region                    = var.region
+  cloudbuild_storage_bucket = google_storage_bucket.cloud_build_staging_bucket.name
 }

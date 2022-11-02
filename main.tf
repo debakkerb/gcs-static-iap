@@ -42,6 +42,20 @@ resource "google_project_iam_member" "project_viewers" {
   role     = "roles/viewer"
 }
 
+resource "google_storage_bucket" "cloud_build_staging_bucket" {
+  project                     = module.project.project_id
+  location                    = var.region
+  name                        = "${module.project.project_id}-cloud-build-staging"
+  force_destroy               = true
+  uniform_bucket_level_access = true
+}
+
+resource "google_storage_bucket_iam_member" "cloud_build_staging_bucket_access" {
+  bucket = google_storage_bucket.cloud_build_staging_bucket.name
+  member = "serviceAccount:${google_service_account.service_identity.email}"
+  role   = "roles/storage.objectAdmin"
+}
+
 resource "google_storage_bucket" "static_asset_storage_bucket" {
   project                     = module.project.project_id
   name                        = "${module.project.project_id}-static-hosting"
