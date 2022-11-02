@@ -24,11 +24,15 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
 var (
-	HOST = os.Getenv("HOST")
+	HOST                 = os.Getenv("HOST")
+	BACKEND_SERVICE_NAME = os.Getenv("BACKEND_SERVICE_NAME")
+	PROJECT_ID           = os.Getenv("PROJECT_ID")
+	PROJECT_NUMBER       = os.Getenv("PROJECT_NUMBER")
 )
 
 func main() {
@@ -54,6 +58,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 		path += "index.html"
 	}
 
+	var newPath strings.Builder
+	newPath.WriteString(path)
+
 	cookie, err := generateSignedCookie(path)
 	http.SetCookie(w, cookie)
 
@@ -61,7 +68,22 @@ func login(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("https://%s%s", HOST, path), http.StatusFound)
+	// Path doesn't contain any other query parameters, so a question mark has to be added first.
+	if !strings.Contains(path, "&") {
+		newPath.WriteString("?")
+	} else {
+		newPath.WriteString("&")
+	}
+
+	userInfo, err := retrieveUserDetails(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	newPath.WriteString("userid=")
+	newPath.WriteString(userInfo.UserEmail)
+
+	http.Redirect(w, r, fmt.Sprintf("https://%s%s", HOST, newPath.String()), http.StatusFound)
 }
 
 func signCookie(urlPrefix string, key []byte, expiration time.Time) (string, error) {

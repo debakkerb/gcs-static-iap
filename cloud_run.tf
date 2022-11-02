@@ -19,6 +19,12 @@ resource "google_service_account" "service_identity" {
   account_id = "static-host-svc-id"
 }
 
+resource "google_project_iam_member" "service_identity_project_permissions" {
+  project = module.project.project_id
+  member  = "serviceAccount:${google_service_account.service_identity.email}"
+  role    = "roles/compute.viewer"
+}
+
 resource "google_cloud_run_service" "login_service" {
   project  = module.project.project_id
   name     = var.login_service_name
@@ -49,6 +55,21 @@ resource "google_cloud_run_service" "login_service" {
         env {
           name  = "HOST"
           value = var.ssl_domain_names.0
+        }
+
+        env {
+          name  = "BACKEND_SERVICE_NAME"
+          value = local.backend_service_name
+        }
+
+        env {
+          name  = "PROJECT_ID"
+          value = module.project.project_id
+        }
+
+        env {
+          name  = "PROJECT_NUMBER"
+          value = module.project.project_number
         }
 
       }
