@@ -95,3 +95,36 @@ terraform apply -var="image_tag=$(date +%s)"
 ```
 
 Every time this command runs, it will generate a new image tag and will update the latest revision of Cloud Run.
+
+## Existing project
+
+It's possible to deploy the resources in an existing project, in case the user executing the deployment doesn't have the necessary permissions to create new projects. 
+
+To accomplish this, add the following to your `terraform.tfvars`-file:
+
+```hcl
+create_project    = false
+project_name      = "<EXISTING_PROJECT_ID>"
+```
+
+The value for variable `project_name` should correspond to the existing project ID of the target project.  The user creating the resources must have the Project IAM Admin (`roles/resourcemanager.projectIamAdmin`) role on the project.
+
+## IAP Brand
+There is an issue with the `google_iap_brand`-resource.  The problem is that the underlying API does not allow you to delete the brand from the Google Cloud project.  When you run `terraform destroy`, or you to try to modify the resource, you may see the following error in the console:
+
+```
+╷
+│ Error: Error creating Brand: googleapi: Error 409: Requested entity already exists
+│ 
+│   with google_iap_brand.project_brand,
+│   on iap.tf line 17, in resource "google_iap_brand" "project_brand":
+│   17: resource "google_iap_brand" "project_brand" {
+│ 
+╵
+```
+
+The solution is to import the resource into your Terraform state file, via this command:
+
+```shell
+terraform import google_iap_brand.project_brand projects/$(terraform output -json | jq -r .project_id.value)/brands/$(terraform output -json | jq -r .project_number.value)
+```

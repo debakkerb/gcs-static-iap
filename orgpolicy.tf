@@ -15,8 +15,8 @@
  */
 
 resource "google_project_organization_policy" "domain_restricted_sharing" {
-  count = var.remove_domain_restricted_sharing_policy ? 1 : 0
-  project    = module.project.project_id
+  count      = var.remove_domain_restricted_sharing_policy ? 1 : 0
+  project    = local.project.project_id
   constraint = "constraints/iam.allowedPolicyMemberDomains"
 
   list_policy {

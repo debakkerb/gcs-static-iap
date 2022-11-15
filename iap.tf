@@ -15,9 +15,14 @@
  */
 
 resource "google_iap_brand" "project_brand" {
-  project           = module.project.project_id
+  project           = local.project.project_id
   application_title = var.brand_application_title
   support_email     = var.brand_support_email
+
+  depends_on = [
+    google_project_service.default,
+    google_project_iam_member.project_admin_permission
+  ]
 }
 
 resource "google_iap_client" "project_oauth_client" {

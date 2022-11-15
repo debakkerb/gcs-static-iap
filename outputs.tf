@@ -35,7 +35,11 @@ output "load_balancer_ip_address" {
 }
 
 output "project_id" {
-  value = module.project.project_id
+  value = local.project.project_id
+}
+
+output "project_number" {
+  value = local.project.number
 }
 
 output "ssl_certificate_name" {

@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-module "project" {
-  source  = "terraform-google-modules/project-factory/google"
-  version = "~> 14.0"
+locals {
+  project = var.create_project ? {
+    project_id = try(module.project.0.project_id, null)
+    number     = try(module.project.0.project_number, null)
+    name       = try(module.project.0.project_name, null)
+    } : {
+    project_id = try(data.google_project.existing_project.0.project_id, null)
+    number     = try(data.google_project.existing_project.0.number, null)
+    name       = try(data.google_project.existing_project.0.name, null)
+  }
 
-  name              = var.project_name
-  random_project_id = true
-  org_id            = var.organization_id
-  folder_id         = var.folder_id
-  billing_account   = var.billing_account_id
-
-  activate_apis = [
+  project_services = [
     "storage.googleapis.com",
     "compute.googleapis.com",
     "run.googleapis.com",
@@ -33,32 +34,86 @@ module "project" {
     "cloudbuild.googleapis.com",
     "secretmanager.googleapis.com"
   ]
+
+  project_admin_roles = [
+    "roles/compute.loadBalancerAdmin",
+    "roles/serviceusage.serviceUsageAdmin",
+    "roles/artifactregistry.admin",
+    "roles/run.admin",
+    "roles/secretmanager.admin",
+    "roles/cloudbuild.builds.editor",
+    "roles/storage.admin",
+    "roles/iam.serviceAccountAdmin",
+    "roles/iap.admin",
+    "roles/compute.instanceAdmin",
+    "roles/iam.roleAdmin",
+    "roles/oauthconfig.editor"
+  ]
+}
+
+data "google_project" "existing_project" {
+  count      = var.create_project ? 0 : 1
+  project_id = var.project_name
+}
+
+resource "google_project_service" "default" {
+  for_each = var.create_project ? [] : toset(local.project_services)
+  project  = local.project.project_id
+  service  = each.value
+
+  disable_dependent_services = true
+  disable_on_destroy         = true
+}
+
+module "project" {
+  count   = var.create_project ? 1 : 0
+  source  = "terraform-google-modules/project-factory/google"
+  version = "~> 14.0"
+
+  name              = var.project_name
+  random_project_id = true
+  org_id            = var.organization_id
+  folder_id         = var.folder_id
+  billing_account   = var.billing_account_id
+  activate_apis     = local.project_services
 }
 
 resource "google_project_iam_member" "project_viewers" {
   for_each = var.project_viewers
-  project  = module.project.project_id
+  project  = local.project.project_id
   member   = each.value
   role     = "roles/viewer"
+
+  depends_on = [
+    google_project_service.default
+  ]
 }
 
 resource "google_storage_bucket" "cloud_build_staging_bucket" {
-  project                     = module.project.project_id
+  project                     = local.project.project_id
   location                    = var.region
-  name                        = "${module.project.project_id}-cloud-build-staging"
+  name                        = "${local.project.project_id}-cloud-build-staging"
   force_destroy               = true
   uniform_bucket_level_access = true
+
+  depends_on = [
+    google_project_service.default
+  ]
 }
 
 resource "google_storage_bucket_iam_member" "cloud_build_staging_bucket_access" {
   bucket = google_storage_bucket.cloud_build_staging_bucket.name
   member = "serviceAccount:${google_service_account.service_identity.email}"
   role   = "roles/storage.objectAdmin"
+
+  depends_on = [
+    google_project_service.default
+  ]
 }
 
 resource "google_storage_bucket" "static_asset_storage_bucket" {
-  project                     = module.project.project_id
-  name                        = "${module.project.project_id}-static-hosting"
+  project                     = local.project.project_id
+  name                        = "${local.project.project_id}-static-hosting"
   location                    = var.region
   force_destroy               = true
   uniform_bucket_level_access = true
@@ -74,6 +129,10 @@ resource "google_storage_bucket" "static_asset_storage_bucket" {
     response_header = ["*"]
     max_age_seconds = 3600
   }
+
+  depends_on = [
+    google_project_service.default
+  ]
 }
 
 resource "google_storage_bucket_object" "modules" {
@@ -84,6 +143,10 @@ resource "google_storage_bucket_object" "modules" {
   content = templatefile("${path.module}/static/sample_index.html", {
     NAME = each.value
   })
+
+  depends_on = [
+    google_project_service.default
+  ]
 }
 
 resource "google_storage_bucket_object" "index_page" {
@@ -100,10 +163,17 @@ resource "google_storage_bucket_object" "not_found_page" {
 
 resource "google_storage_bucket_iam_member" "cdn_access" {
   bucket = google_storage_bucket.static_asset_storage_bucket.name
-  member = "serviceAccount:service-${module.project.project_number}@cloud-cdn-fill.iam.gserviceaccount.com"
+  member = "serviceAccount:service-${local.project.number}@cloud-cdn-fill.iam.gserviceaccount.com"
   role   = "roles/storage.objectViewer"
 
   depends_on = [
     google_compute_backend_bucket_signed_url_key.signed_key
   ]
+}
+
+resource "google_project_iam_member" "project_admin_permission" {
+  for_each = var.create_project ? [] : toset(local.project_admin_roles)
+  member   = "user:${var.project_admin}"
+  project  = local.project.project_id
+  role     = each.value
 }

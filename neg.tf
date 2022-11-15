@@ -20,7 +20,7 @@ locals {
 
 resource "google_compute_region_network_endpoint_group" "login_app_endpoint_group" {
   provider              = google-beta
-  project               = module.project.project_id
+  project               = local.project.project_id
   name                  = "${var.load_balancer_name}-managed-neg"
   network_endpoint_type = "SERVERLESS"
   region                = var.region
@@ -31,7 +31,7 @@ resource "google_compute_region_network_endpoint_group" "login_app_endpoint_grou
 }
 
 resource "google_compute_backend_service" "login_app_service" {
-  project     = module.project.project_id
+  project     = local.project.project_id
   name        = local.backend_service_name
   protocol    = "HTTP"
   port_name   = "http"

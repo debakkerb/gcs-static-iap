@@ -58,6 +58,12 @@ variable "cors_origin" {
   default     = []
 }
 
+variable "create_project" {
+  description = "Whether or not to create a project.  If set to false, a valid Project ID has to be supplied in `project_name`."
+  type        = bool
+  default     = true
+}
+
 variable "enable_backend_service_logging" {
   description = "Enable logging on the NEG backend service."
   type        = bool
@@ -108,16 +114,22 @@ variable "organization_id" {
   type        = string
 }
 
-variable "project_viewers" {
-  description = "List of users who require Viewer access on the project."
-  type        = set(string)
-  default     = []
+variable "project_admin" {
+  description = "Identity of the user executing the Terraform commands to create the resources."
+  type        = string
+  default     = ""
 }
 
 variable "project_name" {
   description = "Name of the project."
   type        = string
   default     = "static-hosting-tst"
+}
+
+variable "project_viewers" {
+  description = "List of users who require Viewer access on the project."
+  type        = set(string)
+  default     = []
 }
 
 variable "remove_domain_restricted_sharing_policy" {

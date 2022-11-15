@@ -21,4 +21,4 @@ REGION=$4
 SOURCE_STORAGE_BUCKET=$5
 
 gcloud config set project ${PROJECT_ID}
-gcloud builds submit . --pack image=${IMAGE_NAME}:${IMAGE_TAG} --region ${REGION} --gcs-source-staging-dir gs://${SOURCE_STORAGE_BUCKET}/source
+gcloud builds submit . --pack image=${IMAGE_NAME}:${IMAGE_TAG} --region ${REGION} --gcs-source-staging-dir gs://${SOURCE_STORAGE_BUCKET}/source --gcs-log-dir gs://${SOURCE_STORAGE_BUCKET}/logs --suppress-logs
